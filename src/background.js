@@ -1,11 +1,13 @@
 'use strict'
 
-import { app, protocol, BrowserWindow } from 'electron'
+import { app, protocol, BrowserWindow, ipcMain } from 'electron'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
 const isDevelopment = process.env.NODE_ENV !== 'production'
 const Store = require("electron-store");
 const store = new Store("config");
+
+const { Server } = require("socket.io")
 
 if (store.size == 0) {
   store.set("config", {
@@ -16,10 +18,16 @@ if (store.size == 0) {
 const config = store.get("config");
 
 
+const io = new Server(config.port, {});
+
+
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { secure: true, standard: true } }
 ])
+
+
+var mainWindow;
 
 async function createWindow() {
   // Create the browser window.
@@ -44,6 +52,8 @@ async function createWindow() {
     // Load the index.html when not in development
     win.loadURL('app://./index.html')
   }
+
+  return win
 }
 
 // Quit when all windows are closed.
@@ -73,7 +83,7 @@ app.on('ready', async () => {
       console.error('Vue Devtools failed to install:', e.toString())
     }
   }
-  createWindow()
+  mainWindow = await createWindow()
 })
 
 // Exit cleanly on request from parent process in development mode.
@@ -90,3 +100,28 @@ if (isDevelopment) {
     })
   }
 }
+
+
+
+// SOCKET IO
+
+io.on("connection", (socket) => {
+  console.log(socket.handshake.auth)
+
+  mainWindow.webContents.send("computer", socket.handshake.auth)
+
+
+});
+
+
+
+
+ipcMain.on("sendCommand", (ev, data) => {
+  console.log(data)
+})
+
+
+ipcMain.handle("computers", async () => {
+  let clients = io.sockets
+  console.log(clients)
+})
