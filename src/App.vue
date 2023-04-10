@@ -30,10 +30,16 @@ export default {
   mounted() {
     ipcRenderer.on("computer", (event, data) => {
       console.log(data)
+      this.computers.push(data)
     });
 
     ipcRenderer.invoke("computers", {}).then((data) => {
+      this.computers = data
+    })
+
+    ipcRenderer.on("computer-disconnect", (ev, data) => {
       console.log(data)
+      this.computers = this.computers.filter(c => c.hostname != data.hostname)
     })
 
   }

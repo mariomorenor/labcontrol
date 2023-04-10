@@ -4,6 +4,7 @@ import { app, protocol, BrowserWindow, ipcMain } from 'electron'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
 const isDevelopment = process.env.NODE_ENV !== 'production'
+import _ from "lodash"
 const Store = require("electron-store");
 const store = new Store("config");
 
@@ -111,6 +112,10 @@ io.on("connection", (socket) => {
   mainWindow.webContents.send("computer", socket.handshake.auth)
 
 
+  socket.on("disconnect", () => {
+    mainWindow.webContents.send("computer-disconnect", socket.handshake.auth)
+  })
+
 });
 
 
@@ -122,6 +127,7 @@ ipcMain.on("sendCommand", (ev, data) => {
 
 
 ipcMain.handle("computers", async () => {
-  let clients = io.sockets
-  console.log(clients)
+  let clients = await io.fetchSockets()
+  clients = _.cloneDeep(clients.map(c => c.handshake.auth))
+  return clients
 })
